@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ruleta casino UI mejorada</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e1e;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 40px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .panel {
+      background: #2c2c2c;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      width: 250px;
+    }
+
+    canvas {
+      background: #111;
+      border-radius: 50%;
+      box-shadow: 0 0 15px rgba(0,0,0,0.8);
+    }
+
+    button {
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .rojo { background: #c0392b; color: white; }
+    .negro { background: #000; color: white; }
+    .girar { background: #27ae60; color: white; }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: none;
+      text-align: center;
+    }
+
+    #resultado {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎰 Ruleta Casino</h1>
+
+  <div class="container">
+
+    <div class="panel">
+      <h3>💰 Saldo</h3>
+      <p>$<span id="saldo">100</span></p>
+
+      <h3>🎯 Apuesta</h3>
+      <input type="number" id="apuesta" placeholder="Monto">
+
+      <button class="rojo" onclick="apostar('red')">Rojo</button>
+      <button class="negro" onclick="apostar('black')">Negro</button>
+
+      <button class="girar" onclick="girar()">Girar</button>
+
+      <p id="resultado"></p>
+    </div>
+
+    <canvas id="canvas" width="300" height="300"></canvas>
+
+  </div>
+
+  <script>
+    const numeros = [0,1,2,3,4,5,6,7,8,9,10,11];
+
+    function obtenerColor(numero) {
+      if (numero === 0) return "green";
+      return numero % 2 === 0 ? "black" : "red";
+    }
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let angulo = 0;
+    let girando = false;
+
+    let saldo = 100;
+    let tipoApuesta = null;
+    let montoApuesta = 0;
+
+    function dibujarRuleta() {
+      let total = numeros.length;
+      let anguloSeccion = (2 * Math.PI) / total;
+
+      for (let i = 0; i < total; i++) {
+        let inicio = angulo + i * anguloSeccion;
+        let fin = inicio + anguloSeccion;
+
+        ctx.beginPath();
+        ctx.moveTo(150, 150);
+        ctx.arc(150, 150, 140, inicio, fin);
+        ctx.fillStyle = obtenerColor(numeros[i]);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(150, 150);
+        ctx.rotate(inicio + anguloSeccion / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "white";
+        ctx.font = "14px Arial";
+        ctx.fillText(numeros[i], 130, 5);
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(150, 10);
+      ctx.lineTo(140, 30);
+      ctx.lineTo(160, 30);
+      ctx.fillStyle = "yellow";
+      ctx.fill();
+    }
+
+    function apostar(color) {
+      let monto = parseInt(document.getElementById("apuesta").value);
+
+      if (!isNaN(monto) && monto > 0 && monto <= saldo) {
+        tipoApuesta = color;
+        montoApuesta = monto;
+        document.getElementById("resultado").innerText = "Apostaste $" + monto + " a " + color;
+      } else {
+        document.getElementById("resultado").innerText = "Apuesta inválida";
+      }
+    }
+
+    function girar() {
+      if (!girando && tipoApuesta !== null) {
+        girando = true;
+
+        let velocidad = Math.random() * 0.3 + 0.3;
+
+        function animar() {
+          ctx.clearRect(0, 0, 300, 300);
+          angulo += velocidad;
+          velocidad *= 0.985;
+          dibujarRuleta();
+
+          if (velocidad > 0.002) {
+            requestAnimationFrame(animar);
+          } else {
+            resolverApuesta();
+            girando = false;
+          }
+        }
+
+        animar();
+      }
+    }
+
+    function resolverApuesta() {
+      let total = numeros.length;
+      let anguloSeccion = (2 * Math.PI) / total;
+
+      let anguloNormalizado = angulo % (2 * Math.PI);
+      let indice = Math.floor((total - (anguloNormalizado / anguloSeccion)) % total);
+
+      let numero = numeros[indice];
+      let color = obtenerColor(numero);
+
+      let mensaje = "Salió " + numero + " (" + color + ")";
+
+      if (color === tipoApuesta) {
+        saldo += montoApuesta;
+        mensaje += " - ¡Ganaste!";
+      } else {
+        saldo -= montoApuesta;
+        mensaje += " - Perdiste";
+      }
+
+      document.getElementById("saldo").innerText = saldo;
+      document.getElementById("resultado").innerText = mensaje;
+
+      tipoApuesta = null;
+      montoApuesta = 0;
+    }
+
+    dibujarRuleta();
+  </script>
+
+</body>
+</html>
